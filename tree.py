@@ -2,8 +2,8 @@ from graphviz import Digraph
 from litellm import completion
 import os
 import logging
-from .utils import get_decompose_function
-from .config import load_config
+from utils import get_decompose_function
+from config import load_config
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -24,7 +24,7 @@ class TreeOfThought:
         self.breadth_limit = self.config['breadth_limit']
         self.value_threshold = self.config['value_threshold']
         
-        os.environ["LITELLM_API_KEY"] = self.api_key
+        os.environ["OPENAI_API_KEY"] = self.api_key
         self.knowledge_base = {}
         self.graph = Digraph(comment='Tree of Thoughts')
     
@@ -35,12 +35,18 @@ class TreeOfThought:
         :param problem: Le problème à résoudre.
         :return: Une liste d'étapes intermédiaires.
         """
-        return self.decompose_function(problem, self.config)
+        steps = self.decompose_function(problem, self.config)
+        if steps:
+            logger.info(f"Problème décomposé en étapes: {steps}")
+        else:
+            logger.warning("Aucune étape de décomposition trouvée.")
+        return steps
 
-    def generate_thoughts(self, state):
+    def generate_thoughts(self, problem, state):
         """
-        Génère des pensées candidates à partir d'un état donné.
+        Génère des pensées candidates à partir d'un état donné et du problème complet.
 
+        :param problem: Le problème complet.
         :param state: L'état actuel.
         :return: Une liste de pensées candidates.
         """
@@ -49,7 +55,10 @@ class TreeOfThought:
             for _ in range(self.num_candidates):
                 response = completion(
                     model=self.model_name,
-                    messages=[{"role": "system", "content": state}]
+                    messages=[
+                        {"role": "system", "content": f"Problème: {problem}"},
+                        {"role": "user", "content": f"Étape actuelle: {state}"}
+                    ]
                 )
                 thought = response['choices'][0]['message']['content']
                 thoughts.append(thought)
@@ -58,10 +67,11 @@ class TreeOfThought:
             logger.error(f"Erreur lors de la génération des pensées : {e}")
         return thoughts
 
-    def evaluate_states(self, states):
+    def evaluate_states(self, problem, states):
         """
-        Évalue les états intermédiaires.
+        Évalue les états intermédiaires en prenant en compte le problème complet.
 
+        :param problem: Le problème complet.
         :param states: Une liste d'états à évaluer.
         :return: Une liste d'états évalués avec leurs scores.
         """
@@ -73,7 +83,10 @@ class TreeOfThought:
                 else:
                     response = completion(
                         model=self.model_name,
-                        messages=[{"role": "system", "content": state}]
+                        messages=[
+                            {"role": "system", "content": f"Problème: {problem}"},
+                            {"role": "user", "content": f"État actuel: {state}"}
+                        ]
                     )
                     score = response['choices'][0]['message']['content']
                     self.knowledge_base[state] = score
@@ -97,8 +110,8 @@ class TreeOfThought:
             next_frontier = []
             for state in frontier:
                 logger.info(f"Exploration de l'état à la profondeur {depth}: {state}")
-                thoughts = self.generate_thoughts(state)
-                evaluated_thoughts = self.evaluate_states(thoughts)
+                thoughts = self.generate_thoughts(problem, state)
+                evaluated_thoughts = self.evaluate_states(problem, thoughts)
                 evaluated_thoughts.sort(key=lambda x: x[1], reverse=True)
                 for next_state, score in evaluated_thoughts[:self.breadth_limit]:
                     self.graph.edge(state, next_state, label=f"Score: {score}")

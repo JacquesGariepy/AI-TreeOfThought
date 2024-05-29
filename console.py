@@ -1,6 +1,6 @@
 import argparse
 import logging
-from .interactive import InteractiveTreeOfThought
+from interactive import InteractiveTreeOfThought
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
