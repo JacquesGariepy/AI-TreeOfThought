@@ -1,0 +1,18 @@
+{
+    "model_name": "gpt-3.5-turbo",
+    "api_key": "your-api-key",
+    "decompose_function": "dynamic_decomposition",
+    "num_candidates": 5,
+    "max_depth": 5,
+    "breadth_limit": 5,
+    "value_threshold": 0.5,
+    "decomposition_steps": [
+        "Étape 1: Analyser le problème.",
+        "Étape 2: Diviser en sous-problèmes.",
+        "Étape 3: Résoudre chaque sous-problème."
+    ],
+    "api_urls": {
+        "primary": "https://api.example.com/decompose",
+        "secondary": "https://api.alternate.com/decompose"
+    }
+}
