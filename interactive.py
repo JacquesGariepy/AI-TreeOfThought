@@ -1,5 +1,9 @@
+import logging
 from tree import TreeOfThought
-from litellm import completion  # Ajoutez cette ligne
+from litellm import completion  # Assurez-vous que cette ligne est présente
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class InteractiveTreeOfThought(TreeOfThought):
     def __init__(self, config_path='config.json'):
@@ -28,7 +32,7 @@ class InteractiveTreeOfThought(TreeOfThought):
             if command == 'next':
                 thoughts = self.generate_thoughts(problem, current_state)
                 print(f"Pensées générées: {thoughts}")
-                best_thought = self.select_best_thought(thoughts)
+                best_thought = self.select_best_thought(problem, thoughts)
                 self.thoughts_history.append(best_thought)
                 if self.current_step_index + 1 < len(self.steps):
                     self.current_step_index += 1
@@ -47,16 +51,27 @@ class InteractiveTreeOfThought(TreeOfThought):
         final_result = self.generate_final_result(problem, self.thoughts_history)
         print(f"Résultat final: {final_result}")
 
-    def select_best_thought(self, thoughts):
+    def select_best_thought(self, problem, thoughts):
         """
-        Sélectionne la meilleure pensée parmi celles générées.
+        Utilise le LLM pour sélectionner la meilleure pensée parmi celles générées.
 
+        :param problem: Le problème complet.
         :param thoughts: Liste des pensées générées.
         :return: La meilleure pensée sélectionnée.
         """
-        # Implémentation simple basée sur la première pensée pour cet exemple.
-        # Vous pouvez ajouter une logique plus complexe pour sélectionner la meilleure pensée.
-        return thoughts[0] if thoughts else ""
+        try:
+            response = completion(
+                model=self.model_name,
+                messages=[
+                    {"role": "system", "content": f"Problème: {problem}"},
+                    {"role": "user", "content": f"Pensées générées: {thoughts}. Sélectionnez la meilleure pensée."}
+                ]
+            )
+            best_thought = response['choices'][0]['message']['content']
+        except Exception as e:
+            logger.error(f"Erreur lors de la sélection de la meilleure pensée : {e}")
+            best_thought = thoughts[0] if thoughts else ""
+        return best_thought
 
     def generate_final_result(self, problem, thoughts_history):
         """

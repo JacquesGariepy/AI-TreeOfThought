@@ -117,7 +117,7 @@ class TreeOfThought:
                     self.graph.edge(state, next_state, label=f"Score: {score}")
                     if score > self.value_threshold:
                         path.append(next_state)
-                        result = self.backtrack_search(next_state)
+                        result = self.backtrack_search(problem)  # Passer le problème ici
                         if result:
                             self.visualize_tree(path)
                             return result
