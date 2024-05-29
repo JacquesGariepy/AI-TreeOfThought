@@ -1,6 +1,6 @@
 {
     "model_name": "gpt-3.5-turbo",
-    "api_key": "your-api-key",
+    "api_key": "sk-proj-DOvtNr7vTwv86q0Nj80yT3BlbkFJgbEtWIIqIbQwrLgubR8f",
     "decompose_function": "dynamic_decomposition",
     "num_candidates": 5,
     "max_depth": 5,

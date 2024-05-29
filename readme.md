@@ -31,10 +31,19 @@ TreeOfThought est une bibliothèque Python puissante et flexible conçue pour r�
 pip install -r requirements.txt
 
 
-## Installation
-
 ```bash
-pip install -r requirements.txt
+treeofthought/
+    __init__.py
+    tree.py
+    utils.py
+    config.py
+    interactive.py
+    exporters.py
+tests/
+    test_tree.py
+    test_interactive.py
+    test_exporters.py
+config.json
 
 
 

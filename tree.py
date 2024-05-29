@@ -27,7 +27,7 @@ class TreeOfThought:
         os.environ["LITELLM_API_KEY"] = self.api_key
         self.knowledge_base = {}
         self.graph = Digraph(comment='Tree of Thoughts')
-
+    
     def decompose_problem(self, problem):
         """
         Utilise la fonction de décomposition dynamique pour décomposer le problème en étapes de pensée intermédiaires.
@@ -54,10 +54,8 @@ class TreeOfThought:
                 thought = response['choices'][0]['message']['content']
                 thoughts.append(thought)
                 self.knowledge_base[thought] = self.knowledge_base.get(thought, 0) + 1
-        except OpenAIError as e:
-            logger.error(f"Erreur lors de la génération des pensées : {e}")
         except Exception as e:
-            logger.error(f"Erreur inattendue : {e}")
+            logger.error(f"Erreur lors de la génération des pensées : {e}")
         return thoughts
 
     def evaluate_states(self, states):
@@ -80,10 +78,8 @@ class TreeOfThought:
                     score = response['choices'][0]['message']['content']
                     self.knowledge_base[state] = score
                 evaluated_states.append((state, score))
-        except OpenAIError as e:
-            logger.error(f"Erreur lors de l'évaluation des états : {e}")
         except Exception as e:
-            logger.error(f"Erreur inattendue : {e}")
+            logger.error(f"Erreur lors de l'évaluation des états : {e}")
         return evaluated_states
 
     def backtrack_search(self, problem):
