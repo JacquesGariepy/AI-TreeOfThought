@@ -1,9 +1,11 @@
 from graphviz import Digraph
-from litellm import completion
 import os
 import logging
+from datetime import datetime
 from utils import get_decompose_function
 from config import load_config
+from agent import Agent, SupervisorAgent
+from litellm import completion
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -23,10 +25,11 @@ class TreeOfThought:
         self.max_depth = self.config['max_depth']
         self.breadth_limit = self.config['breadth_limit']
         self.value_threshold = self.config['value_threshold']
+        self.num_responses = self.config.get('num_responses', 1)  # Default to 1 if not set
         
         os.environ["OPENAI_API_KEY"] = self.api_key
         self.knowledge_base = {}
-        self.graph = Digraph(comment='Tree of Thoughts')
+        self.graph = Digraph(comment='Tree of Thoughts', format='png')
     
     def decompose_problem(self, problem):
         """
@@ -52,48 +55,47 @@ class TreeOfThought:
         """
         thoughts = []
         try:
-            for _ in range(self.num_candidates):
-                response = completion(
-                    model=self.model_name,
-                    messages=[
-                        {"role": "system", "content": f"Problème: {problem}"},
-                        {"role": "user", "content": f"Étape actuelle: {state}"}
-                    ]
-                )
-                thought = response['choices'][0]['message']['content']
+            response = completion(
+                model=self.model_name,
+                messages=[
+                    {"role": "system", "content": f"Problème: {problem}"},
+                    {"role": "user", "content": f"Étape actuelle: {state}"}
+                ],
+                n=self.num_responses
+            )
+            for choice in response['choices']:
+                thought = choice['message']['content']
                 thoughts.append(thought)
                 self.knowledge_base[thought] = self.knowledge_base.get(thought, 0) + 1
+            logger.info(f"Pensées générées pour l'état '{state}': {thoughts}")
         except Exception as e:
             logger.error(f"Erreur lors de la génération des pensées : {e}")
         return thoughts
 
-    def evaluate_states(self, problem, states):
+    def evaluate_thoughts_with_agents(self, problem, thoughts):
         """
-        Évalue les états intermédiaires en prenant en compte le problème complet.
-
+        Évalue les pensées générées en utilisant des agents.
+        
         :param problem: Le problème complet.
-        :param states: Une liste d'états à évaluer.
-        :return: Une liste d'états évalués avec leurs scores.
+        :param thoughts: Les pensées générées.
+        :return: La meilleure pensée évaluée et sa justification.
         """
-        evaluated_states = []
         try:
-            for state in states:
-                if state in self.knowledge_base:
-                    score = self.knowledge_base[state]
-                else:
-                    response = completion(
-                        model=self.model_name,
-                        messages=[
-                            {"role": "system", "content": f"Problème: {problem}"},
-                            {"role": "user", "content": f"État actuel: {state}"}
-                        ]
-                    )
-                    score = response['choices'][0]['message']['content']
-                    self.knowledge_base[state] = score
-                evaluated_states.append((state, score))
+            agents = [Agent(self.model_name, self.api_key, problem, thought, agent_id) for agent_id, thought in enumerate(thoughts)]
+            evaluated_thoughts_with_info = [agent.evaluate_thought() for agent in agents]
+            
+            supervisor = SupervisorAgent(self.model_name, self.api_key, problem)
+            best_info = supervisor.select_best_thought(evaluated_thoughts_with_info)
+            
+            return best_info
         except Exception as e:
-            logger.error(f"Erreur lors de l'évaluation des états : {e}")
-        return evaluated_states
+            logger.error(f"Erreur lors de l'évaluation des pensées par les agents : {e}")
+            return {
+                "agent_id": None,
+                "thought": "Erreur lors de l'évaluation",
+                "justification": "Erreur lors de l'évaluation",
+                "history": []
+            }
 
     def backtrack_search(self, problem):
         """
@@ -111,18 +113,19 @@ class TreeOfThought:
             for state in frontier:
                 logger.info(f"Exploration de l'état à la profondeur {depth}: {state}")
                 thoughts = self.generate_thoughts(problem, state)
-                evaluated_thoughts = self.evaluate_states(problem, thoughts)
-                evaluated_thoughts.sort(key=lambda x: x[1], reverse=True)
-                for next_state, score in evaluated_thoughts[:self.breadth_limit]:
-                    self.graph.edge(state, next_state, label=f"Score: {score}")
-                    if score > self.value_threshold:
-                        path.append(next_state)
-                        result = self.backtrack_search(problem)  # Passer le problème ici
-                        if result:
-                            self.visualize_tree(path)
-                            return result
-                        path.pop()
-                    next_frontier.append(next_state)
+                best_info = self.evaluate_thoughts_with_agents(problem, thoughts)
+                best_thought = best_info["thought"]
+                best_justification = best_info["justification"]
+                self.graph.edge(state, best_thought, label=f"Best Thought: {best_thought}")
+                logger.info(f"Meilleure pensée: {best_thought} avec justification: {best_justification}")
+                if best_thought not in path:
+                    path.append(best_thought)
+                    result = self.backtrack_search(problem)  # Passer le problème ici
+                    if result:
+                        self.visualize_tree(path)
+                        return result
+                    path.pop()
+                next_frontier.append(best_thought)
             frontier = next_frontier
         self.visualize_tree(path)
         return path[-1]
@@ -138,3 +141,4 @@ class TreeOfThought:
             if i > 0:
                 self.graph.edge(str(i-1), str(i))
         self.graph.render('tree_of_thoughts', view=True)
+        logger.info(f"Graphique sauvegardé sous le nom 'tree_of_thoughts.png'")
