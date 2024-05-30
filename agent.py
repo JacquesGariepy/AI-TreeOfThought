@@ -1,47 +1,52 @@
+import json
 import logging
 from datetime import datetime
-from litellm import completion
+from autogen import ConversableAgent, config_list_from_json
+
+from config import load_config
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class Agent:
-    def __init__(self, model_name, api_key, problem, thought, agent_id):
-        self.model_name = model_name
-        self.api_key = api_key
+    def __init__(self, config_path, problem, thought, agent_id):
+        self.config_list = load_config("aiconfig.json")
+        
+        self.generator = ConversableAgent(
+            name=f"agent_{agent_id}",
+            llm_config=self.config_list,
+            code_execution_config=False,
+            function_map=None,
+            human_input_mode="NEVER"
+        )
         self.problem = problem
         self.thought = thought
         self.agent_id = agent_id
         self.history = []
 
     def evaluate_thought(self):
-        """
-        Évalue la pensée actuelle et fournit une justification détaillée.
-        """
         try:
-            response = completion(
-                model=self.model_name,
-                messages=[
-                    {"role": "system", "content": f"Problème: {self.problem}"},
-                    {"role": "user", "content": f"Évalue cette pensée: {self.thought}"}
-                ]
-            )
-            evaluated_thought = response['choices'][0]['message']['content']
+            prompt = f"Problème: {self.problem}\nÉvalue cette pensée: {self.thought}"
+            evaluated_thought = self.generator.generate_reply(messages=[{"content": prompt, "role": "user"}])
             
-            justification_response = completion(
-                model=self.model_name,
-                messages=[
-                    {"role": "system", "content": f"Problème: {self.problem}"},
-                    {"role": "user", "content": f"Justifiez cette pensée: {evaluated_thought}"}
-                ]
-            )
-            justification = justification_response['choices'][0]['message']['content']
+            if not evaluated_thought:
+                raise ValueError("La réponse générée est vide.")
+            logger.info(f"Response from agent {self.agent_id} : {evaluated_thought}")
+            # evaluated_thought = response['choices'][0]['text'].strip()
+            
+            justification_prompt = f"Problème: {self.problem}\nJustifiez cette pensée: {evaluated_thought}"
+            justification_response = self.generator.generate_reply(messages=[{"content": justification_prompt, "role": "user"}])
+            
+            if not justification_response:
+                raise ValueError("La réponse de justification générée est vide.")
+            
+            # justification = justification_response['choices'][0]['text'].strip()
             
             activity = {
                 "action": "evaluate",
                 "thought": self.thought,
                 "evaluated_thought": evaluated_thought,
-                "justification": justification,
+                "justification": justification_response,
                 "timestamp": datetime.now().isoformat()
             }
             self.history.append(activity)
@@ -50,7 +55,7 @@ class Agent:
             return {
                 "agent_id": self.agent_id,
                 "thought": evaluated_thought,
-                "justification": justification,
+                "justification": justification_response,
                 "history": self.history
             }
         except Exception as e:
@@ -63,37 +68,36 @@ class Agent:
             }
 
 class SupervisorAgent:
-    def __init__(self, model_name, api_key, problem):
-        self.model_name = model_name
-        self.api_key = api_key
+    def __init__(self, config_path, problem):
+        self.config_list = load_config("aiconfig.json")
+        self.generator = ConversableAgent(
+            name="supervisor",
+            llm_config=self.config_list,
+            code_execution_config=False,
+            function_map=None,
+            human_input_mode="NEVER"
+        )
         self.problem = problem
         self.history = []
 
     def select_best_thought(self, thoughts_with_info):
-        """
-        Sélectionne la meilleure pensée parmi celles fournies par les agents.
-        """
         try:
-            if not thoughts_with_info:
-                raise ValueError("Aucune pensée à évaluer.")
-
             thoughts = [info["thought"] for info in thoughts_with_info if info["thought"] != "Erreur lors de l'évaluation"]
             justifications = [info["justification"] for info in thoughts_with_info if info["justification"] != "Erreur lors de l'évaluation"]
 
             if not thoughts:
                 raise ValueError("Toutes les pensées sont des erreurs.")
 
-            response = completion(
-                model=self.model_name,
-                messages=[
-                    {"role": "system", "content": f"Problème: {self.problem}"},
-                    {"role": "user", "content": f"Pensées évaluées: {thoughts}. Justifications: {justifications}. Sélectionnez la meilleure pensée."}
-                ]
-            )
-            best_thought = response['choices'][0]['message']['content']
-            best_info = next((info for info in thoughts_with_info if info["thought"] == best_thought), None)
+            prompt = f"Pensées évaluées: {thoughts}. Justifications: {justifications}. En tant que supervisor, sélectionnez la meilleure pensée."
+            best_thought = self.generator.generate_reply(messages=[{"content": prompt, "role": "user"}])
             
-            if best_info is None:
+            if not best_thought:
+                raise ValueError("La réponse générée est vide.")
+            
+            # best_thought = response['choices'][0]['text'].strip()
+            # best_info = next((info for info in thoughts_with_info if info["thought"] == best_thought), None)
+            
+            if best_thought is None:
                 raise ValueError("Impossible de trouver la meilleure pensée parmi les pensées fournies.")
             
             activity = {
@@ -101,13 +105,13 @@ class SupervisorAgent:
                 "thoughts": thoughts,
                 "justifications": justifications,
                 "best_thought": best_thought,
-                "best_info": best_info,
+                "best_info": "__not_implemented__",
                 "timestamp": datetime.now().isoformat()
             }
             self.history.append(activity)
             logger.info(f"Supervisor: {activity}")
             
-            return best_info
+            return best_thought
         except Exception as e:
             logger.error(f"Erreur lors de la sélection de la meilleure pensée : {e}")
             return {

@@ -1,6 +1,6 @@
 import logging
+from config import load_config
 from tree import TreeOfThought
-from litellm import completion
 from agent import Agent, SupervisorAgent
 
 # Configuration du logger pour sauvegarder les logs dans un fichier
@@ -17,13 +17,10 @@ class InteractiveTreeOfThought(TreeOfThought):
         self.current_step_index = 0
         self.steps = []
         self.thoughts_history = []
+        self.config_path = config_path
+        self.config_list = load_config(config_path)
 
     def interactive_mode(self, problem):
-        """
-        Démarre le mode interactif pour la résolution de problèmes.
-
-        :param problem: Le problème à résoudre.
-        """
         print("Démarrage du mode interactif...")
         logger.info("Démarrage du mode interactif...")
         self.steps = self.decompose_problem(problem)
@@ -46,14 +43,15 @@ class InteractiveTreeOfThought(TreeOfThought):
                     continue
                 print(f"Pensées générées: {thoughts}")
                 logger.info(f"Pensées générées: {thoughts}")
-                best_info = self.evaluate_thoughts_with_agents(problem, thoughts)
-                best_thought = best_info["thought"]
-                best_justification = best_info["justification"]
-                self.thoughts_history.append(best_info)
-                print(f"Meilleure pensée: {best_thought} avec justification: {best_justification} par l'agent {best_info['agent_id']}")
-                print(f"Historique de l'agent {best_info['agent_id']}: {best_info['history']}")
-                logger.info(f"Meilleure pensée: {best_thought} avec justification: {best_justification} par l'agent {best_info['agent_id']}")
-                logger.info(f"Historique de l'agent {best_info['agent_id']}: {best_info['history']}")
+                best_thought = self.evaluate_thoughts_with_agents(problem, thoughts)
+                #best_thought = best_info["thought"]
+                #best_justification = best_info["justification"]
+                self.thoughts_history.append(best_thought)
+                print(f"Meilleure pensée: {best_thought}")
+                #print(f"Meilleure pensée: {best_thought} avec justification: {best_justification} par l'agent {best_info['agent_id']}")
+                #print(f"Historique de l'agent {best_info['agent_id']}: {best_info['history']}")
+                #logger.info(f"Meilleure pensée: {best_thought} avec justification: {best_justification} par l'agent {best_info['agent_id']}")
+                #logger.info(f"Historique de l'agent {best_info['agent_id']}: {best_info['history']}")
                 if self.current_step_index + 1 < len(self.steps):
                     self.current_step_index += 1
                     current_state = f"{self.steps[self.current_step_index]} | Contexte précédent: {best_thought}"
@@ -70,32 +68,24 @@ class InteractiveTreeOfThought(TreeOfThought):
                 print("Commande non reconnue. Veuillez réessayer.")
                 logger.warning("Commande non reconnue. Veuillez réessayer.")
         
-        final_result = self.generate_final_result(problem, self.thoughts_history)
-        print(f"Résultat final: {final_result}")
-        logger.info(f"Résultat final: {final_result}")
+        #final_result = self.generate_final_result(problem, self.thoughts_history)
+        #print(f"Résultat final: {final_result}")
+        #logger.info(f"Résultat final: {final_result}")
 
     def evaluate_states(self, problem, states):
-        """
-        Évalue les états intermédiaires en prenant en compte le problème complet.
-
-        :param problem: Le problème complet.
-        :param states: Une liste d'états à évaluer.
-        :return: Une liste d'états évalués avec leurs scores.
-        """
         evaluated_states = []
         try:
             for state in states:
                 if state in self.knowledge_base:
                     score = self.knowledge_base[state]
                 else:
-                    response = completion(
-                        model=self.model_name,
+                    response = self.generator.generate_reply(
                         messages=[
                             {"role": "system", "content": f"Problème: {problem}"},
                             {"role": "user", "content": f"État actuel: {state}"}
                         ]
                     )
-                    score = response['choices'][0]['message']['content']
+                    score = response['choices'][0]['text'].strip()
                     self.knowledge_base[state] = score
                 evaluated_states.append((state, score))
                 logger.info(f"État évalué: {state} avec score: {score}")
@@ -104,25 +94,17 @@ class InteractiveTreeOfThought(TreeOfThought):
         return evaluated_states
 
     def generate_final_result(self, problem, thoughts_history):
-        """
-        Génère un résultat final basé sur l'historique des pensées.
-
-        :param problem: Le problème complet.
-        :param thoughts_history: L'historique des pensées générées.
-        :return: Un résumé ou une conclusion basée sur les pensées générées.
-        """
         try:
             thoughts = [info["thought"] for info in thoughts_history]
             justifications = [info["justification"] for info in thoughts_history]
 
-            response = completion(
-                model=self.model_name,
+            response = self.generator.generate_reply(
                 messages=[
                     {"role": "system", "content": f"Problème: {problem}"},
                     {"role": "user", "content": f"Pensées générées: {thoughts}. Justifications: {justifications}"}
                 ]
             )
-            final_result = response['choices'][0]['message']['content']
+            final_result = response['choices'][0]['text'].strip()
         except Exception as e:
             logger.error(f"Erreur lors de la génération du résultat final : {e}")
             final_result = "Erreur lors de la génération du résultat final."

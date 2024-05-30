@@ -1,6 +1,4 @@
 {
-    "model_name": "gpt-3.5-turbo-1106", 
-    "api_key": "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",
     "decompose_function": "dynamic_decomposition",
     "num_candidates": 5,
     "max_depth": 5,
@@ -8,7 +6,7 @@
     "value_threshold": 0.5,
     "num_responses": 3,
     "decomposition_steps": [
-        "Étapexite 1: Analyser le problème.",
+        "Étape 1: Analyser le problème.",
         "Étape 2: Diviser en sous-problèmes.",
         "Étape 3: Résoudre chaque sous-problème."
     ],
@@ -16,4 +14,5 @@
         "primary": "https://api.example.com/decompose",
         "secondary": "https://api.alternate.com/decompose"
     }
-}
+  }
+  

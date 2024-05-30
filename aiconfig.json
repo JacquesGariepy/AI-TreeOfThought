@@ -1,0 +1,10 @@
+{
+    "config_list": [
+        {
+           "model": "gpt-3.5-turbo-1106",
+            "api_key": "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"
+        }
+    ],
+    "temperature": 0.9,
+    "timeout": 300
+}

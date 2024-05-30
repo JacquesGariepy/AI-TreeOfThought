@@ -1,93 +1,49 @@
-from graphviz import Digraph
-import os
 import logging
-from datetime import datetime
-from utils import get_decompose_function
-from config import load_config
 from agent import Agent, SupervisorAgent
-from litellm import completion
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class TreeOfThought:
     def __init__(self, config_path='config.json'):
-        """
-        Initialise la classe TreeOfThought avec les paramètres de configuration spécifiés.
-
-        :param config_path: Chemin vers le fichier de configuration JSON.
-        """
-        self.config = load_config(config_path)
-        self.model_name = self.config['model_name']
-        self.api_key = self.config['api_key']
-        self.decompose_function = get_decompose_function(self.config['decompose_function'])
-        self.num_candidates = self.config['num_candidates']
-        self.max_depth = self.config['max_depth']
-        self.breadth_limit = self.config['breadth_limit']
-        self.value_threshold = self.config['value_threshold']
-        self.num_responses = self.config.get('num_responses', 1)  # Default to 1 if not set
-        
-        os.environ["OPENAI_API_KEY"] = self.api_key
+        self.config_path = config_path
         self.knowledge_base = {}
-        self.graph = Digraph(comment='Tree of Thoughts', format='png')
-    
-    def decompose_problem(self, problem):
-        """
-        Utilise la fonction de décomposition dynamique pour décomposer le problème en étapes de pensée intermédiaires.
+        self.max_depth = 3  # Vous pouvez ajuster selon vos besoins
+        self.graph = None  # Initialisez votre graphe ici si nécessaire
 
-        :param problem: Le problème à résoudre.
-        :return: Une liste d'étapes intermédiaires.
-        """
-        steps = self.decompose_function(problem, self.config)
-        if steps:
+    def decompose_problem(self, problem):
+        try:
+            #response = self.generator.generate_reply(messages=[{"role": "user", "content": problem}])
+            #decomposition_steps = response['choices'][0]['text'].strip().split('\n')
+            
+            #supervisor = SupervisorAgent(self.config_path, problem)
+            steps = [] # supervisor.select_best_thought(problem)
             logger.info(f"Problème décomposé en étapes: {steps}")
-        else:
-            logger.warning("Aucune étape de décomposition trouvée.")
-        return steps
+            return steps
+        except Exception as e:
+            logger.error(f"Erreur lors de la décomposition du problème : {e}")
+            return []
 
     def generate_thoughts(self, problem, state):
-        """
-        Génère des pensées candidates à partir d'un état donné et du problème complet.
-
-        :param problem: Le problème complet.
-        :param state: L'état actuel.
-        :return: Une liste de pensées candidates.
-        """
         thoughts = []
         try:
-            response = completion(
-                model=self.model_name,
-                messages=[
-                    {"role": "system", "content": f"Problème: {problem}"},
-                    {"role": "user", "content": f"Étape actuelle: {state}"}
-                ],
-                n=self.num_responses
-            )
-            for choice in response['choices']:
-                thought = choice['message']['content']
-                thoughts.append(thought)
-                self.knowledge_base[thought] = self.knowledge_base.get(thought, 0) + 1
+            agent = Agent(self.config_path, problem, state, agent_id=0)  # Créez un agent pour générer des pensées
+            thoughts = agent.evaluate_thought()
             logger.info(f"Pensées générées pour l'état '{state}': {thoughts}")
         except Exception as e:
             logger.error(f"Erreur lors de la génération des pensées : {e}")
         return thoughts
 
     def evaluate_thoughts_with_agents(self, problem, thoughts):
-        """
-        Évalue les pensées générées en utilisant des agents.
-        
-        :param problem: Le problème complet.
-        :param thoughts: Les pensées générées.
-        :return: La meilleure pensée évaluée et sa justification.
-        """
         try:
-            agents = [Agent(self.model_name, self.api_key, problem, thought, agent_id) for agent_id, thought in enumerate(thoughts)]
+            agents = [Agent(self.config_path, problem, thought, agent_id) for agent_id, thought in enumerate(thoughts)]
             evaluated_thoughts_with_info = [agent.evaluate_thought() for agent in agents]
-            
-            supervisor = SupervisorAgent(self.model_name, self.api_key, problem)
-            best_info = supervisor.select_best_thought(evaluated_thoughts_with_info)
-            
-            return best_info
+            supervisor = SupervisorAgent(self.config_path, problem)
+            best_thought = supervisor.select_best_thought(evaluated_thoughts_with_info)
+
+            # retourne  la meilleure pensée mais devrait retourner un dictionnaire contenant les informations sur la pensée et l'agent
+            # return evaluated_thoughts_with_info
+            return best_thought
         except Exception as e:
             logger.error(f"Erreur lors de l'évaluation des pensées par les agents : {e}")
             return {
@@ -97,45 +53,45 @@ class TreeOfThought:
                 "history": []
             }
 
-    def backtrack_search(self, problem):
-        """
-        Recherche avec possibilité de revenir en arrière si une branche ne mène pas à une solution satisfaisante.
+    def evaluate_states(self, problem, states):
+        evaluated_states = []
+        try:
+            for state in states:
+                if state in self.knowledge_base:
+                    score = self.knowledge_base[state]
+                else:
+                    agent = Agent(self.config_path, problem, state, agent_id=0)
+                    score = agent.evaluate_state()
+                    self.knowledge_base[state] = score
+                evaluated_states.append((state, score))
+                logger.info(f"État évalué: {state} avec score: {score}")
+        except Exception as e:
+            logger.error(f"Erreur lors de l'évaluation des états : {e}")
+        return evaluated_states
 
-        :param problem: Le problème à résoudre.
-        :return: Le meilleur état trouvé.
-        """
+    def backtrack_search(self, problem):
         initial_state = self.decompose_problem(problem)[0]
         path = [initial_state]
         frontier = [initial_state]
-        self.graph.node(initial_state, label=initial_state)
         for depth in range(self.max_depth):
             next_frontier = []
             for state in frontier:
                 logger.info(f"Exploration de l'état à la profondeur {depth}: {state}")
                 thoughts = self.generate_thoughts(problem, state)
-                best_info = self.evaluate_thoughts_with_agents(problem, thoughts)
-                best_thought = best_info["thought"]
-                best_justification = best_info["justification"]
-                self.graph.edge(state, best_thought, label=f"Best Thought: {best_thought}")
-                logger.info(f"Meilleure pensée: {best_thought} avec justification: {best_justification}")
+                best_thought = self.evaluate_thoughts_with_agents(problem, thoughts)
+                #best_thought = best_info["thought"]
+                logger.info(f"Meilleure pensée: {best_thought}")
                 if best_thought not in path:
                     path.append(best_thought)
-                    result = self.backtrack_search(problem)  # Passer le problème ici
+                    result = self.backtrack_search(problem)
                     if result:
-                        self.visualize_tree(path)
                         return result
                     path.pop()
                 next_frontier.append(best_thought)
             frontier = next_frontier
-        self.visualize_tree(path)
         return path[-1]
 
     def visualize_tree(self, path):
-        """
-        Crée une visualisation de l'arbre de pensées.
-
-        :param path: Liste des états représentant le chemin de pensée.
-        """
         for i, state in enumerate(path):
             self.graph.node(str(i), state)
             if i > 0:
