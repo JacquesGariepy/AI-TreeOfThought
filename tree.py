@@ -1,4 +1,5 @@
 import logging
+from config import load_config
 from agent import Agent, SupervisorAgent
 
 logging.basicConfig(level=logging.INFO)
@@ -13,11 +14,11 @@ class TreeOfThought:
 
     def decompose_problem(self, problem):
         try:
-            #response = self.generator.generate_reply(messages=[{"role": "user", "content": problem}])
-            #decomposition_steps = response['choices'][0]['text'].strip().split('\n')
-            
             #supervisor = SupervisorAgent(self.config_path, problem)
             steps = [] # supervisor.select_best_thought(problem)
+            config = load_config(self.config_path)
+            steps = config.get("decomposition_steps", [])
+    
             logger.info(f"Problème décomposé en étapes: {steps}")
             return steps
         except Exception as e:
@@ -34,9 +35,11 @@ class TreeOfThought:
             logger.error(f"Erreur lors de la génération des pensées : {e}")
         return thoughts
 
-    def evaluate_thoughts_with_agents(self, problem, thoughts):
+    def evaluate_thoughts_with_agents(self, problem, agent):
         try:
-            agents = [Agent(self.config_path, problem, thought, agent_id) for agent_id, thought in enumerate(thoughts)]
+            config = load_config(self.config_path)
+            num_agents = config.get('num_agents', 1)
+            agents = [Agent(self.config_path, problem, f"Thought for agent {agent_id}, Thought: {agent['thought']} et justification :  {agent['justification']}", agent_id) for agent_id in range(1, num_agents + 1)]
             evaluated_thoughts_with_info = [agent.evaluate_thought() for agent in agents]
             supervisor = SupervisorAgent(self.config_path, problem)
             best_thought = supervisor.select_best_thought(evaluated_thoughts_with_info)
@@ -52,22 +55,6 @@ class TreeOfThought:
                 "justification": "Erreur lors de l'évaluation",
                 "history": []
             }
-
-    def evaluate_states(self, problem, states):
-        evaluated_states = []
-        try:
-            for state in states:
-                if state in self.knowledge_base:
-                    score = self.knowledge_base[state]
-                else:
-                    agent = Agent(self.config_path, problem, state, agent_id=0)
-                    score = agent.evaluate_state()
-                    self.knowledge_base[state] = score
-                evaluated_states.append((state, score))
-                logger.info(f"État évalué: {state} avec score: {score}")
-        except Exception as e:
-            logger.error(f"Erreur lors de l'évaluation des états : {e}")
-        return evaluated_states
 
     def backtrack_search(self, problem):
         initial_state = self.decompose_problem(problem)[0]

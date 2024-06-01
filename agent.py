@@ -88,9 +88,9 @@ class SupervisorAgent:
             if not thoughts:
                 raise ValueError("Toutes les pensées sont des erreurs.")
 
-            prompt = f"Pensées évaluées: {thoughts}. Justifications: {justifications}. En tant que supervisor, sélectionnez la meilleure pensée."
+            prompt = f"Pour le problème {self.problem}. Voici la liste des pensées évaluées pour chaque agent : {thoughts}. Pour chaque item de la liste des pensées, voici leurs justifications : {justifications}. En tant que superviseur, sélectionne et fournis-moi la meilleure pensée avec sa justification. Refournis moi intégralement la pensée et la justification sélectionné."
             best_thought = self.generator.generate_reply(messages=[{"content": prompt, "role": "user"}])
-            
+            response =  f"{best_thought} : {prompt}"
             if not best_thought:
                 raise ValueError("La réponse générée est vide.")
             
@@ -104,14 +104,14 @@ class SupervisorAgent:
                 "action": "select_best",
                 "thoughts": thoughts,
                 "justifications": justifications,
-                "best_thought": best_thought,
+                "best_thought": response,
                 "best_info": "__not_implemented__",
                 "timestamp": datetime.now().isoformat()
             }
             self.history.append(activity)
             logger.info(f"Supervisor: {activity}")
             
-            return best_thought
+            return response
         except Exception as e:
             logger.error(f"Erreur lors de la sélection de la meilleure pensée : {e}")
             return {

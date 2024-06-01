@@ -1,18 +1,22 @@
 {
-    "decompose_function": "dynamic_decomposition",
-    "num_candidates": 5,
-    "max_depth": 5,
-    "breadth_limit": 5,
-    "value_threshold": 0.5,
-    "num_responses": 3,
-    "decomposition_steps": [
-        "Étape 1: Analyser le problème.",
-        "Étape 2: Diviser en sous-problèmes.",
-        "Étape 3: Résoudre chaque sous-problème."
-    ],
-    "api_urls": {
-        "primary": "https://api.example.com/decompose",
-        "secondary": "https://api.alternate.com/decompose"
-    }
+  "decompose_function": "dynamic_decomposition",
+  "num_candidates": 5,
+  "max_depth": 5,
+  "breadth_limit": 5,
+  "value_threshold": 0.5,
+  "num_responses": 3,
+  "num_agents": 3,
+  "decomposition_steps": [
+    "Étape 1: Analyser le problème : comprendre la demande initiale en clarifiant la question ou le problème posé, identifier les objectifs et les contraintes spécifiques, collecter toutes les informations nécessaires, y compris les contextes historiques, les exemples pertinents et les informations de base nécessaires pour comprendre le problème, et établir les critères de succès pour la solution, y compris les exigences de précision, de temps de réponse et de pertinence des résultats.",
+    
+    "Étape 2: Diviser en sous-problèmes : identifier les composantes principales du problème en le décomposant en ses éléments constitutifs, organiser les sous-problèmes de manière logique et séquentielle en identifiant les dépendances et les relations entre eux, et déterminer l'ordre dans lequel les sous-problèmes doivent être abordés en fonction de leur complexité et de leur impact sur la solution globale.",
+    
+    "Étape 3: Résoudre chaque sous-problème : choisir les techniques appropriées en sélectionnant les algorithmes, modèles ou méthodes les plus adaptés pour résoudre chaque sous-problème, développer et tester des solutions pour chaque sous-problème en les testant de manière isolée pour s'assurer de leur validité et de leur efficacité, et intégrer les solutions des sous-problèmes de manière cohérente et synergique en veillant à ce que l'intégration soit fluide et que les sous-solutions fonctionnent bien ensemble.",
+    
+    "Étape 4: Fournir le résultat : assembler le résultat final en combinant les sorties des différentes sous-solutions pour former une réponse complète et cohérente au problème initial, vérifier la solution en effectuant une vérification approfondie pour s'assurer qu'elle est correcte, pertinente et qu'elle répond bien aux critères de succès définis, et présenter la solution en la formatant de manière claire et compréhensible en utilisant des visualisations, des résumés ou des rapports détaillés selon les besoins de l'utilisateur final."
+  ],
+  "api_urls": {
+      "primary": "https://api.example.com/decompose",
+      "secondary": "https://api.alternate.com/decompose"
   }
-  
+}

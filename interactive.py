@@ -34,16 +34,20 @@ class InteractiveTreeOfThought(TreeOfThought):
         while self.current_step_index < len(self.steps):
             print(f"Étape actuelle {self.current_step_index + 1}/{len(self.steps)}: {current_state}")
             logger.info(f"Étape actuelle {self.current_step_index + 1}/{len(self.steps)}: {current_state}")
-            command = input("Entrez 'next' pour générer des pensées, 'eval' pour évaluer des états, 'exit' pour quitter: ")
+            command = input(f"Entrez 'next' pour lancer {current_state}, 'eval' pour évaluer des états, 'exit' pour quitter: ")
             if command == 'next':
-                thoughts = self.generate_thoughts(problem, current_state)
-                if not thoughts:
+                agent = self.generate_thoughts(problem, current_state)
+                if not agent:
                     print("Aucune pensée générée. Veuillez réessayer.")
                     logger.warning("Aucune pensée générée.")
                     continue
-                print(f"Pensées générées: {thoughts}")
-                logger.info(f"Pensées générées: {thoughts}")
-                best_thought = self.evaluate_thoughts_with_agents(problem, thoughts)
+
+                print(f"Agent ID: {agent['agent_id'] + 1}")
+                print(f"Thought: {agent['thought']}")
+                print(f"Justification: {agent['justification']}")
+                                   
+                logger.info(f"Pensées générées: {agent}")
+                best_thought = self.evaluate_thoughts_with_agents(problem, agent)
                 #best_thought = best_info["thought"]
                 #best_justification = best_info["justification"]
                 self.thoughts_history.append(best_thought)
@@ -79,20 +83,14 @@ class InteractiveTreeOfThought(TreeOfThought):
                 if state in self.knowledge_base:
                     score = self.knowledge_base[state]
                 else:
-                    response = self.generator.generate_reply(
-                        messages=[
-                            {"role": "system", "content": f"Problème: {problem}"},
-                            {"role": "user", "content": f"État actuel: {state}"}
-                        ]
-                    )
-                    score = response['choices'][0]['text'].strip()
+                    agent = Agent(self.config_path, problem, state, agent_id=0)
+                    score = agent.evaluate_state()
                     self.knowledge_base[state] = score
                 evaluated_states.append((state, score))
                 logger.info(f"État évalué: {state} avec score: {score}")
         except Exception as e:
             logger.error(f"Erreur lors de l'évaluation des états : {e}")
-        return evaluated_states
-
+        return evaluated_states        
     def generate_final_result(self, problem, thoughts_history):
         try:
             thoughts = [info["thought"] for info in thoughts_history]
