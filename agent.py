@@ -2,7 +2,6 @@ import json
 import logging
 from datetime import datetime
 from autogen import ConversableAgent, config_list_from_json
-
 from config import load_config
 
 logging.basicConfig(level=logging.INFO)
@@ -93,10 +92,7 @@ class SupervisorAgent:
             response =  f"{best_thought} : {prompt}"
             if not best_thought:
                 raise ValueError("La réponse générée est vide.")
-            
-            # best_thought = response['choices'][0]['text'].strip()
-            # best_info = next((info for info in thoughts_with_info if info["thought"] == best_thought), None)
-            
+
             if best_thought is None:
                 raise ValueError("Impossible de trouver la meilleure pensée parmi les pensées fournies.")
             

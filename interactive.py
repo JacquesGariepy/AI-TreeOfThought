@@ -1,9 +1,11 @@
 import logging
+import json
+from string import printable
 from config import load_config
 from tree import TreeOfThought
 from agent import Agent, SupervisorAgent
+from exporters import export_tree_to_image, export_tree_to_json
 
-# Configuration du logger pour sauvegarder les logs dans un fichier
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 file_handler = logging.FileHandler('interactive_tree_of_thought.log')
@@ -47,18 +49,12 @@ class InteractiveTreeOfThought(TreeOfThought):
                 print(f"Justification: {agent['justification']}")
                                    
                 logger.info(f"Pensées générées: {agent}")
-                best_thought = self.evaluate_thoughts_with_agents(problem, agent)
-                #best_thought = best_info["thought"]
-                #best_justification = best_info["justification"]
-                self.thoughts_history.append(best_thought)
-                print(f"Meilleure pensée: {best_thought}")
-                #print(f"Meilleure pensée: {best_thought} avec justification: {best_justification} par l'agent {best_info['agent_id']}")
-                #print(f"Historique de l'agent {best_info['agent_id']}: {best_info['history']}")
-                #logger.info(f"Meilleure pensée: {best_thought} avec justification: {best_justification} par l'agent {best_info['agent_id']}")
-                #logger.info(f"Historique de l'agent {best_info['agent_id']}: {best_info['history']}")
+                self.best_thought = self.evaluate_thoughts_with_agents(problem, agent)
+                self.thoughts_history.append(self.best_thought)
+                print(f"Meilleure pensée: {self.best_thought}")
                 if self.current_step_index + 1 < len(self.steps):
                     self.current_step_index += 1
-                    current_state = f"{self.steps[self.current_step_index]} | Contexte précédent: {best_thought}"
+                    current_state = f"{self.steps[self.current_step_index]} | Contexte précédent: {self.best_thought}"
                 else:
                     self.current_step_index += 1  # Sortir de la boucle après la dernière étape
             elif command == 'eval':
@@ -71,10 +67,9 @@ class InteractiveTreeOfThought(TreeOfThought):
             else:
                 print("Commande non reconnue. Veuillez réessayer.")
                 logger.warning("Commande non reconnue. Veuillez réessayer.")
-        
-        #final_result = self.generate_final_result(problem, self.thoughts_history)
-        #print(f"Résultat final: {final_result}")
-        #logger.info(f"Résultat final: {final_result}")
+        # save to final result to a file
+        self.save_result('resultat_final.json')
+        print("Fin du mode interactif.")
 
     def evaluate_states(self, problem, states):
         evaluated_states = []
@@ -90,7 +85,8 @@ class InteractiveTreeOfThought(TreeOfThought):
                 logger.info(f"État évalué: {state} avec score: {score}")
         except Exception as e:
             logger.error(f"Erreur lors de l'évaluation des états : {e}")
-        return evaluated_states        
+        return evaluated_states
+    
     def generate_final_result(self, problem, thoughts_history):
         try:
             thoughts = [info["thought"] for info in thoughts_history]
@@ -108,3 +104,13 @@ class InteractiveTreeOfThought(TreeOfThought):
             final_result = "Erreur lors de la génération du résultat final."
         logger.info(f"Résultat final généré: {final_result}")
         return final_result
+    
+    def save_result(self, filename):
+        result = {
+            "best_thought": self.best_thought,
+            "thoughts_history": self.thoughts_history,
+            "steps": self.steps,  # Remplacez ceci par vos autres éléments
+        }
+
+        with open(filename, 'w') as f:
+            json.dump(result, f, indent=4, ensure_ascii=False)

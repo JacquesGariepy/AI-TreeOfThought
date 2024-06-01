@@ -1,6 +1,7 @@
 import logging
 from config import load_config
 from agent import Agent, SupervisorAgent
+from graphviz import Digraph
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -55,33 +56,3 @@ class TreeOfThought:
                 "justification": "Erreur lors de l'évaluation",
                 "history": []
             }
-
-    def backtrack_search(self, problem):
-        initial_state = self.decompose_problem(problem)[0]
-        path = [initial_state]
-        frontier = [initial_state]
-        for depth in range(self.max_depth):
-            next_frontier = []
-            for state in frontier:
-                logger.info(f"Exploration de l'état à la profondeur {depth}: {state}")
-                thoughts = self.generate_thoughts(problem, state)
-                best_thought = self.evaluate_thoughts_with_agents(problem, thoughts)
-                #best_thought = best_info["thought"]
-                logger.info(f"Meilleure pensée: {best_thought}")
-                if best_thought not in path:
-                    path.append(best_thought)
-                    result = self.backtrack_search(problem)
-                    if result:
-                        return result
-                    path.pop()
-                next_frontier.append(best_thought)
-            frontier = next_frontier
-        return path[-1]
-
-    def visualize_tree(self, path):
-        for i, state in enumerate(path):
-            self.graph.node(str(i), state)
-            if i > 0:
-                self.graph.edge(str(i-1), str(i))
-        self.graph.render('tree_of_thoughts', view=True)
-        logger.info(f"Graphique sauvegardé sous le nom 'tree_of_thoughts.png'")
