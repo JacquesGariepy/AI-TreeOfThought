@@ -11,12 +11,10 @@ class Agent:
     def __init__(self, config_path, problem, thought, agent_id):
         self.config_list = load_config("aiconfig.json")
         
-        self.generator = ConversableAgent(
+        self.generator = AssistantAgent(
             name=f"agent_{agent_id}",
+            system_message="You are a problem solver. Evaluate and justify thoughts based on given problems and generate refined responses.",
             llm_config=self.config_list,
-            code_execution_config=False,
-            function_map=None,
-            human_input_mode="NEVER"
         )
         self.problem = problem
         self.thought = thought
@@ -69,14 +67,12 @@ class Agent:
 class SupervisorAgent:
     def __init__(self, config_path, problem):
         self.config_list = load_config("aiconfig.json")
-        self.generator = ConversableAgent(
-            name="supervisor",
+        system_message="You are a problem solver. Evaluate and justify thoughts based on given problems and generate refined responses.",
             llm_config=self.config_list,
-            code_execution_config=False,
-            function_map=None,
-            human_input_mode="NEVER"
         )
         self.problem = problem
+        self.thought = thought
+        self.agent_id = agent_id
         self.history = []
 
     def select_best_thought(self, thoughts_with_info):
