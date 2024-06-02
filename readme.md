@@ -1,6 +1,6 @@
-# TreeOfThought
+# AI-TreeOfThought
 
-TreeOfThought est une bibliothèque Python puissante et flexible conçue pour résoudre des problèmes complexes en utilisant des modèles de langage avancés comme GPT-3.5-turbo. Cette bibliothèque permet la décomposition dynamique des problèmes, la génération et l'évaluation des pensées, ainsi que l'exportation des arbres de pensée générés.
+TreeOfThought est une bibliothèque Python puissante et flexible conçue pour résoudre des problèmes complexes en utilisant des modèles de langage avancés comme GPT4, GPT4o, etc. Cette bibliothèque permet la décomposition dynamique des problèmes, la génération et l'évaluation des pensées, ainsi que l'exportation des arbres de pensée générés.
 
 ## Fonctionnalités
 
