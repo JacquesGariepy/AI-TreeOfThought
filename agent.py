@@ -1,8 +1,9 @@
 import json
 import logging
 from datetime import datetime
-from autogen import ConversableAgent, config_list_from_json
-from config import load_config
+from autogen import ConversableAgent, AssistantAgen
+config_list_from_json from config import load_config
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
