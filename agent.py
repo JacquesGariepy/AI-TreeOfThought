@@ -10,7 +10,6 @@ logger = logging.getLogger(__name__)
 class Agent:
     def __init__(self, config_path, problem, thought, agent_id):
         self.config_list = load_config("aiconfig.json")
-        
         self.generator = ConversableAgent(
             name=f"agent_{agent_id}",
             llm_config=self.config_list,
@@ -25,21 +24,18 @@ class Agent:
 
     def evaluate_thought(self):
         try:
-            prompt = f"Problème: {self.problem}\nÉvalue cette pensée: {self.thought}"
+            prompt = f"Problem: {self.problem}\nEvaluate this thought: {self.thought}"
             evaluated_thought = self.generator.generate_reply(messages=[{"content": prompt, "role": "user"}])
             
             if not evaluated_thought:
-                raise ValueError("La réponse générée est vide.")
+                raise ValueError("The generated response is empty.")
             logger.info(f"Response from agent {self.agent_id} : {evaluated_thought}")
-            # evaluated_thought = response['choices'][0]['text'].strip()
             
-            justification_prompt = f"Problème: {self.problem}\nJustifiez cette pensée: {evaluated_thought}"
+            justification_prompt = f"Problem: {self.problem}\nJustify this thought: {evaluated_thought}"
             justification_response = self.generator.generate_reply(messages=[{"content": justification_prompt, "role": "user"}])
             
             if not justification_response:
-                raise ValueError("La réponse de justification générée est vide.")
-            
-            # justification = justification_response['choices'][0]['text'].strip()
+                raise ValueError("The generated justification response is empty.")
             
             activity = {
                 "action": "evaluate",
@@ -58,11 +54,11 @@ class Agent:
                 "history": self.history
             }
         except Exception as e:
-            logger.error(f"Erreur lors de l'évaluation de la pensée par l'agent {self.agent_id} : {e}")
+            logger.error(f"Error during the evaluation of the thought by agent {self.agent_id} : {e}")
             return {
                 "agent_id": self.agent_id,
-                "thought": "Erreur lors de l'évaluation",
-                "justification": "Erreur lors de l'évaluation",
+                "thought": "Error during evaluation",
+                "justification": "Error during evaluation",
                 "history": self.history
             }
 
@@ -81,20 +77,20 @@ class SupervisorAgent:
 
     def select_best_thought(self, thoughts_with_info):
         try:
-            thoughts = [info["thought"] for info in thoughts_with_info if info["thought"] != "Erreur lors de l'évaluation"]
-            justifications = [info["justification"] for info in thoughts_with_info if info["justification"] != "Erreur lors de l'évaluation"]
+            thoughts = [info["thought"] for info in thoughts_with_info if info["thought"] != "Error during evaluation"]
+            justifications = [info["justification"] for info in thoughts_with_info if info["justification"] != "Error during evaluation"]
 
             if not thoughts:
-                raise ValueError("Toutes les pensées sont des erreurs.")
+                raise ValueError("All thoughts are errors.")
 
-            prompt = f"Pour le problème {self.problem}. Voici la liste des pensées évaluées pour chaque agent : {thoughts}. Pour chaque item de la liste des pensées, voici leurs justifications : {justifications}. En tant que superviseur, sélectionne et fournis-moi la meilleure pensée avec sa justification. Refournis moi intégralement la pensée et la justification sélectionné."
+            prompt = f"For the problem {self.problem}. Here is the list of evaluated thoughts for each agent : {thoughts}. For each item in the list of thoughts, here are their justifications : {justifications}. As a supervisor, select and provide me the best thought with its justification. Provide me the entire selected thought and justification."
             best_thought = self.generator.generate_reply(messages=[{"content": prompt, "role": "user"}])
             response =  f"{best_thought} : {prompt}"
             if not best_thought:
-                raise ValueError("La réponse générée est vide.")
+                raise ValueError("The generated response is empty.")
 
             if best_thought is None:
-                raise ValueError("Impossible de trouver la meilleure pensée parmi les pensées fournies.")
+                raise ValueError("Unable to find the best thought among the provided thoughts.")
             
             activity = {
                 "action": "select_best",
@@ -109,10 +105,10 @@ class SupervisorAgent:
             
             return response
         except Exception as e:
-            logger.error(f"Erreur lors de la sélection de la meilleure pensée : {e}")
+            logger.error(f"Error during the selection of the best thought : {e}")
             return {
                 "agent_id": None,
-                "thought": "Erreur lors de la sélection de la meilleure pensée",
-                "justification": "Erreur lors de la sélection de la meilleure pensée",
+                "thought": "Error during the selection of the best thought",
+                "justification": "Error during the selection of the best thought",
                 "history": self.history
             }

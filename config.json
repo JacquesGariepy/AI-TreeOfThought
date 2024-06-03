@@ -6,17 +6,19 @@
   "value_threshold": 0.5,
   "num_responses": 3,
   "num_agents": 3,
+  "filename_result": "result",
   "decomposition_steps": [
-    "Étape 1: Analyser le problème : comprendre la demande initiale en clarifiant la question ou le problème posé, identifier les objectifs et les contraintes spécifiques, collecter toutes les informations nécessaires, y compris les contextes historiques, les exemples pertinents et les informations de base nécessaires pour comprendre le problème, et établir les critères de succès pour la solution, y compris les exigences de précision, de temps de réponse et de pertinence des résultats.",
-    
-    "Étape 2: Diviser en sous-problèmes : identifier les composantes principales du problème en le décomposant en ses éléments constitutifs, organiser les sous-problèmes de manière logique et séquentielle en identifiant les dépendances et les relations entre eux, et déterminer l'ordre dans lequel les sous-problèmes doivent être abordés en fonction de leur complexité et de leur impact sur la solution globale.",
-    
-    "Étape 3: Résoudre chaque sous-problème : choisir les techniques appropriées en sélectionnant les algorithmes, modèles ou méthodes les plus adaptés pour résoudre chaque sous-problème, développer et tester des solutions pour chaque sous-problème en les testant de manière isolée pour s'assurer de leur validité et de leur efficacité, et intégrer les solutions des sous-problèmes de manière cohérente et synergique en veillant à ce que l'intégration soit fluide et que les sous-solutions fonctionnent bien ensemble.",
-    
-    "Étape 4: Fournir le résultat : assembler le résultat final en combinant les sorties des différentes sous-solutions pour former une réponse complète et cohérente au problème initial, vérifier la solution en effectuant une vérification approfondie pour s'assurer qu'elle est correcte, pertinente et qu'elle répond bien aux critères de succès définis, et présenter la solution en la formatant de manière claire et compréhensible en utilisant des visualisations, des résumés ou des rapports détaillés selon les besoins de l'utilisateur final."
+    "Step 1: Analyze the problem: Understand the initial request by clarifying the question or problem posed, identify specific objectives and constraints, collect all necessary information including historical contexts, relevant examples, and basic information required to understand the problem, and establish success criteria for the solution, including requirements for accuracy, response time, and relevance of results.",
+
+    "Step 2: Break down into sub-problems: Identify the main components of the problem by breaking it down into its constituent elements, organize the sub-problems logically and sequentially by identifying dependencies and relationships between them, and determine the order in which the sub-problems should be addressed based on their complexity and impact on the overall solution.",
+
+    "Step 3: Solve each sub-problem: Choose appropriate techniques by selecting the most suitable algorithms, models, or methods to solve each sub-problem, develop and test solutions for each sub-problem by testing them in isolation to ensure their validity and effectiveness, and integrate the sub-problem solutions in a coherent and synergistic manner to ensure smooth integration and effective functioning of the sub-solutions together.",
+
+    "Step 4: Provide the result: Assemble the final result by combining the outputs of the various sub-solutions to form a complete and coherent response to the initial problem, verify the solution by conducting a thorough review to ensure it is correct, relevant, and meets the defined success criteria, and present the solution by formatting it clearly and comprehensibly using visualizations, summaries, or detailed reports as needed by the end user."
   ],
+
   "api_urls": {
-      "primary": "https://api.example.com/decompose",
-      "secondary": "https://api.alternate.com/decompose"
+    "primary": "https://api.example.com/decompose",
+    "secondary": "https://api.alternate.com/decompose"
   }
 }

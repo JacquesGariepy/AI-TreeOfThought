@@ -15,7 +15,7 @@ def main():
     problem = args.problem
 
     if not problem:
-        problem = input("Veuillez entrer le problème à résoudre: ")
+        problem = input("Please enter the problem to solve: ")
 
     tree = InteractiveTreeOfThought(config_path)
     tree.interactive_mode(problem)
