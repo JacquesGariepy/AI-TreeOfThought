@@ -1,7 +1,7 @@
 import json
 import logging
 from datetime import datetime
-from autogen import ConversableAgent, AssistantAgen
+from autogen import ConversableAgent, AssistantAgent
 config_list_from_json from config import load_config
 
 
