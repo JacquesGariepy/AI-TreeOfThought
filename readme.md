@@ -16,7 +16,7 @@ TreeOfThought est une bibliothèque Python puissante et flexible conçue pour r�
 ## Spécifications Techniques
 
 - **Langage de programmation** : Python
-- **Modèles de langage** : GPT-3.5-turbo et autres modèles compatibles avec l'API LiteLLM
+- **Modèles de langage** : GPT4o, GPT4, GPT-3.5-turbo et autres modèles compatibles avec autogen
 - **Format de configuration** : JSON
 - **Bibliothèques utilisées** :
   - `graphviz` : Pour la visualisation des arbres de pensée. (non implémenté dans cette version)
