@@ -1,9 +1,8 @@
 import json
 import logging
 from datetime import datetime
-from autogen import ConversableAgent, AssistantAgent
-config_list_from_json from config import load_config
-
+from autogen import ConversableAgent
+from config import load_config
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -65,12 +64,12 @@ class Agent:
 class SupervisorAgent:
     def __init__(self, config_path, problem):
         self.config_list = load_config("aiconfig.json")
-        system_message="You are a problem solver. Evaluate and justify thoughts based on given problems and generate refined responses.",
+        self.generator = ConversableAgent(
+            name=f"SuperVisorAgent",
+            system_message="You are a problem solver. Evaluate and justify thoughts based on given problems and generate refined responses.",
             llm_config=self.config_list,
         )
         self.problem = problem
-        self.thought = thought
-        self.agent_id = agent_id
         self.history = []
 
     def select_best_thought(self, thoughts_with_info):

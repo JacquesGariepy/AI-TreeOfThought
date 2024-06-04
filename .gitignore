@@ -20,3 +20,5 @@ __pycache__/interactive.cpython-312.pyc
 __pycache__/tree.cpython-312.pyc
 /result_20240601-172509.json
 /final_result.json
+result_*.json
+__pycache__/*pyc
