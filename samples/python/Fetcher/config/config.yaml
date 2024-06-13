@@ -1,0 +1,5 @@
+fetcher:
+  url: "https://arxiv.org/html/2403.08299"
+
+saver:
+  output_path: "data/"

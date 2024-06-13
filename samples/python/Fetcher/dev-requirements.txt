@@ -1,0 +1,7 @@
+pylint
+# flake8==3.9.2
+# unittest
+pytest
+pre-commit
+coverage
+pyyaml
